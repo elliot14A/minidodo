@@ -1,13 +1,16 @@
-use axum::{Json, response::IntoResponse, routing::get};
-use utoipa::{
-    Modify, OpenApi, ToSchema,
-    openapi::Components,
-    openapi::security::{Http, HttpAuthScheme, SecurityScheme},
-};
+use axum::Json;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use utoipa::openapi::Components;
+use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
+use utoipa::{Modify, OpenApi, ToSchema};
+
+pub mod businesses;
 
 pub fn routes() -> axum::Router {
     axum::Router::new()
         .route("/health", get(health_check))
+        .nest("/businesses", businesses::routes())
 }
 
 #[utoipa::path(
@@ -66,6 +69,9 @@ where
         ("BearerAuth" = [])
     ),
     modifiers(&SecurityAddon),
+    nest(
+        (path = "/v1/businesses", api = businesses::BusinessesApiDoc),
+    ),
     tags(
         (name = "health", description = "Health check endpoints"),
     )
