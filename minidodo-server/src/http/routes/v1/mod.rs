@@ -6,11 +6,13 @@ use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
 use utoipa::{Modify, OpenApi, ToSchema};
 
 pub mod businesses;
+pub mod customers;
 
 pub fn routes() -> axum::Router {
     axum::Router::new()
         .route("/health", get(health_check))
         .nest("/businesses", businesses::routes())
+        .nest("/customers", customers::routes())
 }
 
 #[utoipa::path(
@@ -71,6 +73,7 @@ where
     modifiers(&SecurityAddon),
     nest(
         (path = "/v1/businesses", api = businesses::BusinessesApiDoc),
+        (path = "/v1/customers", api = customers::CustomersApiDoc),
     ),
     tags(
         (name = "health", description = "Health check endpoints"),
