@@ -33,6 +33,11 @@ impl AuthErrorCode {
     pub const FORBIDDEN: &'static str = "AUTH_FORBIDDEN";
 }
 
+pub struct InvoiceErrorCode;
+impl InvoiceErrorCode {
+    pub const INVALID_STATE_TRANSITION: &'static str = "INVOICE_INVALID_STATE_TRANSITION";
+}
+
 pub struct PaymentErrorCode;
 impl PaymentErrorCode {
     pub const INVOICE_NOT_PAYABLE: &'static str = "PAYMENT_INVOICE_NOT_PAYABLE";
