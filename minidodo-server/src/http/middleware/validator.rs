@@ -1,5 +1,5 @@
 use axum::{
-    extract::{FromRequest, Request},
+    extract::{rejection::JsonRejection, FromRequest, Request},
     Json,
 };
 use minidodo_core::{MinidodoError, ValidationErrorCode};
@@ -20,9 +20,15 @@ where
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let Json(data) = Json::<T>::from_request(req, state).await.map_err(|err| {
             tracing::error!(error = %err, "failed to parse JSON request body");
-            MinidodoError::BadRequest {
-                message: "invalid JSON format".to_string(),
-                code: ValidationErrorCode::INVALID_JSON,
+            match err {
+                JsonRejection::JsonDataError(_) => MinidodoError::BadRequest {
+                    message: "request body contains an invalid or unsupported value".to_string(),
+                    code: ValidationErrorCode::INVALID_FIELD,
+                },
+                _ => MinidodoError::BadRequest {
+                    message: "invalid JSON format".to_string(),
+                    code: ValidationErrorCode::INVALID_JSON,
+                },
             }
         })?;
 
