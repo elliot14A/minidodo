@@ -10,6 +10,7 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 snafu = { workspace = true }
 axum = { workspace = true }
+sqlx = { workspace = true }
 utoipa = { version = "5.3.1", features = ["axum_extras", "chrono", "uuid"] }
 validator = { workspace = true }
 tracing = { workspace = true }
