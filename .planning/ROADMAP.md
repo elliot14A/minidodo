@@ -10,24 +10,14 @@
   - `01-03`: `minidodo-infra` postgres connection pool, error handling (`impl From<PostgresError> for MinidodoError`), and migration runner.
   - `01-04`: `minidodo-server` HTTP server harness, `ValidatedJson<T>`, `TraceLayer`, and root `ApiDoc` setup.
 
-### Phase 2: Business Entity (End-to-End Slice)
-- **Goal**: Complete vertical slice for `Business`.
+### Phase 2: Business Entity & API Key Auth (End-to-End Slice)
+- **Goal**: Complete vertical slice for `Business` and deterministic API key authentication with seeding.
 - **Plans**:
-  - `02-01`: Migration `0001_create_businesses.sql` (lowercase SQL, UUID v4 primary key).
-  - `02-02`: Domain model `Business`, `NewBusiness` in `minidodo-core` deriving `ToSchema`.
-  - `02-03`: Postgres actions under `minidodo-infra/src/postgres/actions/businesses/{create.rs, get.rs, mod.rs}`.
-  - `02-04`: API routes under `minidodo-server/src/http/routes/v1/businesses/{create.rs, get.rs, routes.rs, mod.rs}` with `utoipa` docs.
+  - `02-01`: Migration `0001_create_businesses_and_api_keys.sql` with default business and API key seed.
+  - `02-02`: Domain model `Business`, `AuthContext` in `minidodo-core` and database actions in `minidodo-infra`.
+  - `02-03`: Axum `AuthContext` extractor middleware, `GET /v1/businesses/me` API route, and OpenAPI docs.
 
-### Phase 3: API Key & Authentication (End-to-End Slice)
-- **Goal**: Complete vertical slice for `ApiKey` and Axum authentication middleware.
-- **Plans**:
-  - `03-01`: Migration `0002_create_api_keys.sql` (SHA-256 `token_hash`, indexed `token_prefix`, `unique(token_hash)`).
-  - `03-02`: Domain models `ApiKey`, `ApiKeyStatus`, `NewApiKey` in `minidodo-core`.
-  - `03-03`: Postgres actions under `minidodo-infra/src/postgres/actions/apikeys/{create.rs, get_by_prefix.rs, revoke.rs, mod.rs}`.
-  - `03-04`: Token generation utilities (`dodo_<prefix>_<secret>`) and Axum `AuthContext` extractor middleware in `minidodo-server`.
-  - `03-05`: API routes under `minidodo-server/src/http/routes/v1/apikeys/{create.rs, list.rs, revoke.rs, routes.rs, mod.rs}` with `utoipa` docs.
-
-### Phase 4: Customer Entity (End-to-End Slice)
+### Phase 3: Customer Entity (End-to-End Slice)
 - **Goal**: Complete vertical slice for `Customer`.
 - **Plans**:
   - `04-01`: Migration `0003_create_customers.sql` (`idx(business_id, created_at desc)`).
