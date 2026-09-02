@@ -71,5 +71,29 @@ services:
         - action: rebuild
           path: ./Cargo.lock
 
+  psp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:3000"
+    environment:
+      - MINIDODO_PSP_HOST=0.0.0.0
+      - MINIDODO_PSP_PORT=3000
+      - RUST_LOG=info,minidodo_psp=debug
+    command: ["psp"]
+    develop:
+      watch:
+        - action: rebuild
+          path: ./minidodo-core
+        - action: rebuild
+          path: ./minidodo-psp
+        - action: rebuild
+          path: ./minidodo-cli
+        - action: rebuild
+          path: ./Cargo.toml
+        - action: rebuild
+          path: ./Cargo.lock
+
 volumes:
   postgres_data:

@@ -13,4 +13,5 @@ pub enum MinidodoCommands {
     #[default]
     Server,
     Migrate,
+    Psp,
 }

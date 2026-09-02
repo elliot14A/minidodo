@@ -1277,6 +1277,7 @@ dependencies = [
  "dotenvy",
  "minidodo-core",
  "minidodo-infra",
+ "minidodo-psp",
  "minidodo-server",
  "tokio",
  "tracing",
@@ -1317,6 +1318,24 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "minidodo-psp"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "minidodo-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tower-layer",
+ "tracing",
+ "uuid",
+ "validator",
 ]
 
 [[package]]

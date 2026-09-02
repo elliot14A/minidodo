@@ -1,5 +1,5 @@
 pub mod middleware;
 pub mod routes;
-pub mod serve;
+pub mod server;
 
 pub use routes::v1::{ApiDoc, JsonResponse};

@@ -1,5 +1,4 @@
 pub mod auth;
-pub mod validator;
 
-pub use auth::*;
-pub use validator::ValidatedJson;
+pub use auth::AuthContext;
+pub use minidodo_core::http::middleware::validator::ValidatedJson;

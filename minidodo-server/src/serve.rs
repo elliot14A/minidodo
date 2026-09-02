@@ -3,7 +3,7 @@ use minidodo_infra::postgres::connection::ConnectionPool;
 use tracing::info;
 
 pub async fn serve(host: String, port: u16, pg_pool: ConnectionPool) -> Result<()> {
-    let (addr, server) = crate::http::serve::build_http_server(host, port, pg_pool).await?;
+    let (addr, server) = crate::http::server::build_http_server(host, port, pg_pool).await?;
     info!(address = %addr, "server ready and listening");
     server.await
 }
