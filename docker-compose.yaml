@@ -1,0 +1,75 @@
+name: minidodo
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=minidodo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - MINIDODO_POSTGRES_HOST=postgres
+      - MINIDODO_POSTGRES_PORT=5432
+      - MINIDODO_POSTGRES_DATABASE=minidodo
+      - MINIDODO_POSTGRES_USER=postgres
+      - MINIDODO_POSTGRES_PASSWORD=postgres
+      - RUST_LOG=info,minidodo_infra=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["migrate"]
+    restart: "no"
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - MINIDODO_SERVER_HOST=0.0.0.0
+      - MINIDODO_SERVER_PORT=3000
+      - MINIDODO_POSTGRES_HOST=postgres
+      - MINIDODO_POSTGRES_PORT=5432
+      - MINIDODO_POSTGRES_DATABASE=minidodo
+      - MINIDODO_POSTGRES_USER=postgres
+      - MINIDODO_POSTGRES_PASSWORD=postgres
+      - RUST_LOG=info,minidodo_server=debug,minidodo_infra=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    command: ["server"]
+    develop:
+      watch:
+        - action: rebuild
+          path: ./minidodo-core
+        - action: rebuild
+          path: ./minidodo-infra
+        - action: rebuild
+          path: ./minidodo-server
+        - action: rebuild
+          path: ./minidodo-cli
+        - action: rebuild
+          path: ./Cargo.toml
+        - action: rebuild
+          path: ./Cargo.lock
+
+volumes:
+  postgres_data:

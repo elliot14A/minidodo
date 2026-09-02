@@ -1,0 +1,13 @@
+{
+  "baseProfile": "core",
+  "disabledClusters": [
+    "ui",
+    "ai_eval",
+    "ns_meta",
+    "utility",
+    "research_ideate",
+    "docs",
+    "workspace_state",
+    "milestone"
+  ]
+}

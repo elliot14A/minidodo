@@ -1,0 +1,28 @@
+# Target and build artifacts
+target/
+**/*.rs.bk
+
+# Planning and agent tooling
+.agents/
+.planning/
+.git/
+.gitignore
+
+# Environment files and local data
+*.env
+*.env.*
+!minidodo.env.example
+volumes/
+postgres_data/
+
+# Documentation and markdown files
+*.md
+!README.md
+docs/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

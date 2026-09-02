@@ -1,0 +1,18 @@
+[package]
+name = "minidodo-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "minidodo"
+path = "src/main.rs"
+
+[dependencies]
+minidodo-core = { workspace = true }
+minidodo-infra = { workspace = true }
+minidodo-server = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenvy = { workspace = true }

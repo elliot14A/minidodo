@@ -1,0 +1,144 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-check-update.js"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .agents/hooks/gsd-session-state.sh"
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-context-monitor.js",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-read-injection-scanner.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .agents/hooks/gsd-graphify-update.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .agents/hooks/gsd-phase-boundary.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-prompt-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-read-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-workflow-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-worktree-path-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-agent-isolation-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(for n in \"/nix/store/bfqsxlviikq7vlp36kasy5hhamlxlkd2-nodejs-slim-24.19.0/bin/node\" \"$(command -v node)\" /usr/local/bin/node /usr/bin/node; do [ -x \"$n\" ] && { [ \"${n#/}\" != \"$n\" ] || [ \"${n#?:}\" != \"$n\" ]; } && printf '%s' \"$n\" && break; done)\" .agents/hooks/gsd-write-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .agents/hooks/gsd-validate-commit.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "read_file(~/Desktop/files/assignments/minidodo/.agents/gsd-core/*)",
+      "read_file(~/Desktop/files/assignments/minidodo/.agents/agents/gsd-*)",
+      "read_file(~/Desktop/files/assignments/minidodo/.agents/skills/gsd-*)",
+      "command(node ~/Desktop/files/assignments/minidodo/.agents/hooks/*)"
+    ]
+  }
+}
