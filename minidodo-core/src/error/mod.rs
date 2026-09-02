@@ -1,4 +1,4 @@
-mod error_codes;
+pub mod error_codes;
 
 use axum::{
     Json,
@@ -6,51 +6,52 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 use utoipa::ToSchema;
 
 pub use error_codes::*;
 
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Snafu, Clone)]
+#[snafu(visibility(pub))]
 pub enum MinidodoError {
-    #[error("Bad request: {message}")]
+    #[snafu(display("Bad request: {message}"))]
     BadRequest { message: String, code: &'static str },
 
-    #[error("Unauthorized: {message}")]
+    #[snafu(display("Unauthorized: {message}"))]
     Unauthorized { message: String, code: &'static str },
 
-    #[error("Forbidden: {message}")]
+    #[snafu(display("Forbidden: {message}"))]
     Forbidden { message: String, code: &'static str },
 
-    #[error("{details}")]
+    #[snafu(display("{details}"))]
     NotFound { details: String, code: &'static str },
 
-    #[error("Conflict: {message}")]
+    #[snafu(display("Conflict: {message}"))]
     Conflict { message: String, code: &'static str },
 
-    #[error("Duplicate resource: {details}")]
+    #[snafu(display("Duplicate resource: {details}"))]
     Duplicate { details: String, code: &'static str },
 
-    #[error("Unprocessable entity: {message}")]
+    #[snafu(display("Unprocessable entity: {message}"))]
     UnprocessableEntity { message: String, code: &'static str },
 
-    #[error("Constraint violation on {resource}: {details}")]
+    #[snafu(display("Constraint violation on {resource}: {details}"))]
     ConstraintViolation {
         resource: String,
         details: String,
         code: &'static str,
     },
 
-    #[error("Database connection error: {message}")]
+    #[snafu(display("Database connection error: {message}"))]
     DatabaseConnection { message: String, code: &'static str },
 
-    #[error("Database error: {message}")]
+    #[snafu(display("Database error: {message}"))]
     DatabaseError { message: String, code: &'static str },
 
-    #[error("Internal error: {message}")]
+    #[snafu(display("Internal error: {message}"))]
     Internal { message: String, code: &'static str },
 
-    #[error("Service unavailable: {message}")]
+    #[snafu(display("Service unavailable: {message}"))]
     ServiceUnavailable { message: String, code: &'static str },
 }
 

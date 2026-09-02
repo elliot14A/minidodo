@@ -1,13 +1,13 @@
-use axum::{extract::Request, Router, ServiceExt};
+use axum::Router;
 use minidodo_core::{MinidodoError, Result, SystemErrorCode};
 use minidodo_infra::postgres::connection::ConnectionPool;
 use std::{future::Future, pin::Pin};
+use tower::Layer;
 use tower_http::{
     cors::{Any, CorsLayer},
     normalize_path::NormalizePathLayer,
     trace::TraceLayer,
 };
-use tower_layer::Layer;
 use tracing::{error, info};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -22,12 +22,15 @@ pub async fn build_http_server(
     port: u16,
     pg_pool: ConnectionPool,
 ) -> Result<(String, ServerFuture)> {
-    let openapi = http::routes::v1::ApiDoc::openapi();
+    let app = Router::new();
+    let openapi = http::routes::ApiDoc::openapi();
 
-    let app = Router::new()
+    let api = http::routes::routes().layer(axum::Extension(pg_pool));
+    let api = NormalizePathLayer::trim_trailing_slash().layer(api);
+
+    let app = app
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi))
-        .merge(http::routes::routes())
-        .layer(axum::Extension(pg_pool));
+        .fallback_service(api);
 
     let app = initialize_tracing(app);
     let app = app.layer(
@@ -36,15 +39,15 @@ pub async fn build_http_server(
             .allow_headers(Any)
             .allow_methods(Any),
     );
-    let app = NormalizePathLayer::trim_trailing_slash().layer(app);
 
     let addr = format!("{}:{}", host, port);
-    info!(address = %addr, "binding listener");
+    info!(address = %addr, "Starting server");
+    info!(address = %addr, "Swagger UI available");
 
     let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
-        error!("failed to bind to address {}: {}", addr, e);
+        error!("Failed to bind to address {}: {}", addr, e);
         MinidodoError::Internal {
-            message: "failed to bind to server address".to_string(),
+            message: "Failed to bind to server address".to_string(),
             code: SystemErrorCode::INTERNAL_ERROR,
         }
     })?;
@@ -53,13 +56,13 @@ pub async fn build_http_server(
     let server = Box::pin(async move {
         axum::serve(
             listener,
-            ServiceExt::<Request>::into_make_service_with_connect_info::<std::net::SocketAddr>(app),
+            app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
         )
         .await
         .map_err(|e| {
-            error!("server error on {}: {}", server_addr, e);
+            error!("Server error on {}: {}", server_addr, e);
             MinidodoError::Internal {
-                message: "server encountered an error".to_string(),
+                message: "Server encountered an error".to_string(),
                 code: SystemErrorCode::INTERNAL_ERROR,
             }
         })
@@ -85,7 +88,7 @@ fn initialize_tracing(app: Router) -> Router {
                 tracing::info!(
                     method = %request.method(),
                     uri = %request.uri().to_string(),
-                    "request received"
+                    "Request received"
                 );
             })
             .on_response(
@@ -97,13 +100,13 @@ fn initialize_tracing(app: Router) -> Router {
                         tracing::error!(
                             status = %status,
                             latency_us = latency.as_micros(),
-                            "request completed"
+                            "Request completed"
                         );
                     } else {
                         tracing::info!(
                             status = %status,
                             latency_us = latency.as_micros(),
-                            "request completed"
+                            "Request completed"
                         );
                     }
                 },

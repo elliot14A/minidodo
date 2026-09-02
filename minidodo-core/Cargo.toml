@@ -8,10 +8,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
-thiserror = { workspace = true }
+snafu = { workspace = true }
 axum = { workspace = true }
-utoipa = { workspace = true }
+utoipa = { version = "5.3.1", features = ["axum_extras", "chrono", "uuid"] }
 validator = { workspace = true }
 tracing = { workspace = true }
-figment = { workspace = true }
-uncased = { workspace = true }
+figment = { version = "0.10.19", features = ["env"] }

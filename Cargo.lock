@@ -1292,9 +1292,8 @@ dependencies = [
  "figment",
  "serde",
  "serde_json",
- "thiserror",
+ "snafu",
  "tracing",
- "uncased",
  "utoipa",
  "uuid",
  "validator",
@@ -2726,7 +2725,6 @@ version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1b88fcfe09e89d3866a5c11019378088af2d24c3fbd4f0543f96b479ec90697"
 dependencies = [
- "serde",
  "version_check",
 ]
 

@@ -1,7 +1,8 @@
-use axum::{response::IntoResponse, routing::get, Json};
+use axum::{Json, response::IntoResponse, routing::get};
 use utoipa::{
-    openapi::security::{Http, HttpAuthScheme, SecurityScheme},
     Modify, OpenApi, ToSchema,
+    openapi::Components,
+    openapi::security::{Http, HttpAuthScheme, SecurityScheme},
 };
 
 pub fn routes() -> axum::Router {
@@ -16,6 +17,7 @@ pub fn routes() -> axum::Router {
     responses(
         (status = 200, description = "Service is healthy", body = String, example = "OK")
     ),
+    security(),
     tag = "health"
 )]
 #[tracing::instrument(name = "health_check")]
@@ -60,15 +62,12 @@ where
     paths(
         health_check,
     ),
-    components(
-        schemas(
-            minidodo_core::ErrorResponse,
-            minidodo_core::ValidationErrorDetail,
-        )
+    security(
+        ("BearerAuth" = [])
     ),
     modifiers(&SecurityAddon),
     tags(
-        (name = "health", description = "Health check endpoints")
+        (name = "health", description = "Health check endpoints"),
     )
 )]
 pub struct ApiDoc;
@@ -77,7 +76,7 @@ struct SecurityAddon;
 
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        let components = openapi.components.get_or_insert_with(utoipa::openapi::Components::new);
+        let components = openapi.components.get_or_insert_with(Components::new);
         components.add_security_scheme(
             "BearerAuth",
             SecurityScheme::Http(

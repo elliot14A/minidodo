@@ -2,14 +2,6 @@ use crate::{MinidodoError, Result, SystemErrorCode};
 use figment::{Figment, providers::Env};
 use serde::Deserialize;
 use std::collections::HashSet;
-use uncased::{Uncased, UncasedStr};
-
-fn map_env_key(k: &UncasedStr) -> Uncased<'_> {
-    match k.as_str() {
-        "POSTGRES_POOL_SIZE" => "POSTGRES.POOL_SIZE".into(),
-        k => k.replace('_', ".").into(),
-    }
-}
 
 fn create_figment_for(allowed_top_level: &[&str]) -> Figment {
     let allowed: HashSet<String> = allowed_top_level
@@ -23,7 +15,13 @@ fn create_figment_for(allowed_top_level: &[&str]) -> Figment {
     Figment::new()
         .merge(
             Env::prefixed("MINIDODO_")
-                .map(map_env_key)
+                .map(|k| {
+                    if k.as_str() == "POSTGRES_POOL_SIZE" {
+                        "POSTGRES.POOL_SIZE".into()
+                    } else {
+                        k.as_str().replace('_', ".").into()
+                    }
+                })
                 .filter(move |k| {
                     let top = k
                         .as_str()
@@ -34,15 +32,25 @@ fn create_figment_for(allowed_top_level: &[&str]) -> Figment {
                     allowed1.contains(&top)
                 }),
         )
-        .merge(Env::raw().map(map_env_key).filter(move |k| {
-            let top = k
-                .as_str()
-                .split('.')
-                .next()
-                .unwrap_or("")
-                .to_ascii_lowercase();
-            allowed2.contains(&top)
-        }))
+        .merge(
+            Env::raw()
+                .map(|k| {
+                    if k.as_str() == "POSTGRES_POOL_SIZE" {
+                        "POSTGRES.POOL_SIZE".into()
+                    } else {
+                        k.as_str().replace('_', ".").into()
+                    }
+                })
+                .filter(move |k| {
+                    let top = k
+                        .as_str()
+                        .split('.')
+                        .next()
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    allowed2.contains(&top)
+                }),
+        )
 }
 
 pub fn load_config_typed<T>(config_name: &str, allowed_top_level: &[&str]) -> Result<T>

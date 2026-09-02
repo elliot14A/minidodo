@@ -11,8 +11,8 @@ axum = { workspace = true }
 tower = { workspace = true }
 tower-layer = { workspace = true }
 tower-http = { workspace = true }
-utoipa = { workspace = true }
-utoipa-swagger-ui = { workspace = true }
+utoipa = { version = "5.3.1", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "vendored", "debug-embed"] }
 validator = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -20,4 +20,4 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
 sha2 = { workspace = true }
-hex = { workspace = true }
+hex = "0.4.3"
