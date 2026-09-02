@@ -22,11 +22,11 @@ on startup.
 
 ## Curl examples
 
-Set your API key once:
+The default development API key seeded during migration for `Acme Corp` is:
 
 ```sh
-export API_KEY="<seeded key from startup logs>"
-export BASE="http://localhost:8080"
+export API_KEY="dodo_test_key_12345"
+export BASE="http://localhost:3000"
 ```
 
 Create a customer:

@@ -25,7 +25,7 @@ server-side from line items. A client-supplied total is ignored.
 | Table | Shape (key columns) | PK strategy | Notable indexes |
 |---|---|---|---|
 | `businesses` | `id`, `name`, `created_at` | UUID v4 | none |
-| `api_keys` | `id`, `business_id`, `token_hash` (bytea), `token_prefix`, `status`, `created_at`, `revoked_at` | UUID v4 | `unique(token_hash)`; `idx(business_id)` |
+| `api_keys` | `id`, `business_id`, `token_hash` (bytea), `token_prefix`, `name`, `created_at` | UUID v4 | `unique(token_hash)`; `idx(business_id)`; `idx(token_prefix)` |
 | `customers` | `id`, `business_id`, `name`, `email`, `created_at` | UUID v4 | `idx(business_id, created_at desc)` |
 | `invoices` | `id`, `business_id`, `customer_id`, `state`, `total_cents BIGINT`, `due_date`, `created_at` | UUID v4 | `idx(business_id, state)`; `idx(customer_id)` |
 | `line_items` | `id`, `invoice_id`, `description`, `quantity INT`, `unit_amount_cents BIGINT` | UUID v4 | `idx(invoice_id)` |
@@ -243,21 +243,25 @@ would add moving parts without doing anything the sweep does not already do at t
 
 ## 5. API Key Model
 
-- **Generation.** A random 32-byte token, shown once as `dodo_<prefix>_<secret>`. The
-  `<prefix>` (the first few characters) is stored in plaintext for lookup and display. The
-  full token is never stored.
-- **Storage.** Only a hash of the token is stored in `token_hash` (salted SHA-256 or Argon2,
-  as bytea). Plaintext is never persisted or logged.
+- **Generation.** A token of the form `dodo_<prefix>_<secret>`. The `<prefix>` is stored in
+  plaintext for lookup and display. The full token is never stored. For this exercise one key
+  is seeded at migration time (`dodo_test_key_12345` with prefix `dodo_test` for `Acme Corp`) and
+  its plaintext is documented in the README.
+- **Storage.** Only the SHA-256 hash of the token is stored in `token_hash` (as bytea), with
+  `token_prefix` alongside it. Plaintext is never persisted or logged. SHA-256 is sufficient
+  here because the token is high-entropy random, so slow password hashing (Argon2) buys
+  nothing.
 - **Transmission.** `Authorization: Bearer dodo_...` over TLS, with TLS terminated at the edge
   in production. Never in query strings, which leak into logs.
 - **Lookup.** By `token_prefix` (indexed) then a constant-time hash comparison. A leaked
   prefix alone reveals nothing, and lookups do not leak timing.
-- **Rotation and revocation.** Keys have a `status` and a `revoked_at`. Revocation is a status
-  flip checked on every request. Multiple active keys per business allow zero-downtime
-  rotation: issue a new key, migrate, then revoke the old one.
+- **Rotation and revocation.** Not implemented. The token is a static seeded credential tied to
+  one business. Revocation would be a `status` column checked on every request, and rotation
+  would allow multiple active keys per business, but neither is built here (see section 6).
 - **Blast radius if leaked.** A key is scoped to one business, so a leaked key can act only
-  within that business. The mitigation is to revoke it immediately with a single status update
-  and, in production, to alert on anomalous usage. Keys carry no cross-business authority.
+  within that business and carries no cross-business authority. Without revocation, the
+  mitigation is to reseed the key. In production the first additions would be a revocation
+  status flip and alerting on anomalous usage.
 
 ---
 
@@ -268,6 +272,10 @@ would add moving parts without doing anything the sweep does not already do at t
 - **A durable message broker (NATS or SQS).** Background work stays on Postgres, which keeps
   `docker compose up` to a single datastore. A broker would be the move once there are many job
   types or the polling load grows.
+- **API key rotation and revocation.** The assignment leaves revocation to our discretion. One
+  key is seeded and tied to a business, which satisfies scoped authentication. A `status` and
+  `revoked_at` column would add revocation, and multiple active keys per business would add
+  zero-downtime rotation, but neither earns its complexity for a single-tenant demo.
 - **Production rate limiting.** Discussed in section 7 rather than built.
 - **Multi-currency, tax, subscriptions, and email sending.** Explicitly out of scope. Email is
   logged as "would send."
