@@ -96,14 +96,24 @@ to 72 hours) and terminal webhook deliveries on a retention sweep.
 - `-> uncollectible`: an administrative terminal state for invoices written off. It sits
   outside the automated payment path.
 
+**How transitions are triggered.** The payment transitions (`open -> processing -> paid` and
+the `processing -> open` reversal) are driven by `POST /v1/invoices/{id}/pay` and the PSP
+result. The non-payment transitions are driven by a single `PATCH /v1/invoices/{id}` endpoint
+that takes a target `state` in the body: `draft -> open` (finalize), `open -> void`, and
+`open -> uncollectible`. This endpoint is a guarded transition, not a raw field setter. It
+never accepts `paid` or `processing` as a target, and it never moves an invoice out of a
+terminal state. Each accepted target maps to one status-conditional update, so the set of
+legal transitions is enforced by the same mechanism as the pay claim.
+
 **Reversibility and rejection.** `processing -> open` is the only reversal, and it happens
 only on a definitive PSP failure, never on a timeout (see section 3b). `paid`, `void`, and
 `uncollectible` are terminal and irreversible. Invalid transitions are rejected at the
-database level by the status-conditional claim:
-`UPDATE invoices SET state='processing' WHERE id=$1 AND state='open'`. If the invoice is not
-`open`, this affects 0 rows and the API returns `409 Conflict` with a clear error naming the
-current state. There is no read-then-write race because the guard and the write are the same
-statement.
+database level by the status-conditional update. For the pay claim this is
+`UPDATE invoices SET state='processing' WHERE id=$1 AND state='open'`; for a `PATCH` to `void`
+it is `UPDATE invoices SET state='void' WHERE id=$1 AND state='open'`. If the current state
+does not match the guard, the update affects 0 rows and the API returns `409 Conflict` with a
+clear error naming the current state. There is no read-then-write race because the guard and
+the write are the same statement.
 
 ---
 
