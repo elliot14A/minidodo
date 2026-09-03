@@ -19,8 +19,8 @@ machine, and failure handling.
 The payment API returns `202` immediately and never blocks on the PSP. The worker performs the
 charge asynchronously, driven by `LISTEN/NOTIFY` with a recovery sweep as a crash backstop.
 
-## Architecture
-![architecture](./assets/architecture.png)
+## End-to-End Payment Sequence
+![payment-seq](./assets/payment-seq.png)
 
 ## Requirements
 
