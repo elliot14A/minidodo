@@ -33,6 +33,9 @@ pub enum WebhookDeliveryStatus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "webhook_event_type")]
 pub enum WebhookEventType {
+    #[serde(rename = "invoice.created")]
+    #[sqlx(rename = "invoice.created")]
+    InvoiceCreated,
     #[serde(rename = "invoice.paid")]
     #[sqlx(rename = "invoice.paid")]
     InvoicePaid,
@@ -49,6 +52,12 @@ pub struct WebhookEndpoint {
     pub signing_secret: String,
     pub active: bool,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewWebhookEndpoint {
+    pub url: String,
+    pub signing_secret: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]

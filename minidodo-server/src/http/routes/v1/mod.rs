@@ -8,6 +8,7 @@ use utoipa::{Modify, OpenApi, ToSchema};
 pub mod businesses;
 pub mod customers;
 pub mod invoices;
+pub mod webhooks;
 
 pub fn routes() -> axum::Router {
     axum::Router::new()
@@ -15,6 +16,7 @@ pub fn routes() -> axum::Router {
         .nest("/businesses", businesses::routes())
         .nest("/customers", customers::routes())
         .nest("/invoices", invoices::routes())
+        .nest("/webhooks", webhooks::routes())
 }
 
 #[utoipa::path(
@@ -77,6 +79,7 @@ where
         (path = "/v1/businesses", api = businesses::BusinessesApiDoc),
         (path = "/v1/customers", api = customers::CustomersApiDoc),
         (path = "/v1/invoices", api = invoices::InvoicesApiDoc),
+        (path = "/v1/webhooks", api = webhooks::WebhooksApiDoc),
     ),
     tags(
         (name = "health", description = "Health check endpoints"),

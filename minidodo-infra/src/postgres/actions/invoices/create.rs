@@ -1,7 +1,9 @@
+use minidodo_core::models::webhook::WebhookEventType;
 use minidodo_core::{
     DatabaseErrorCode, Invoice, InvoiceState, InvoiceWithLineItems, LineItem, MinidodoError,
     NewInvoice, Result,
 };
+use serde_json::json;
 use snafu::ResultExt;
 use uuid::Uuid;
 
@@ -75,7 +77,28 @@ pub async fn create(
         line_items.push(line_item);
     }
 
+    let webhook_payload = json!({
+        "invoice_id": invoice.id,
+        "customer_id": invoice.customer_id,
+        "state": invoice.state,
+        "total_cents": invoice.total_cents
+    });
+
+    let webhook_delivery_ids = crate::postgres::actions::webhooks::stage_deliveries(
+        &mut tx,
+        business_id,
+        WebhookEventType::InvoiceCreated,
+        webhook_payload,
+    )
+    .await?;
+
     tx.commit().await.context(TransactionFailedSnafu)?;
+
+    for delivery_id in webhook_delivery_ids {
+        if let Err(e) = crate::postgres::actions::webhooks::notify_webhook(pool, delivery_id).await {
+            tracing::warn!(error = %e, delivery_id = %delivery_id, "Failed to send pg_notify for invoice.created webhook");
+        }
+    }
 
     Ok(InvoiceWithLineItems { invoice, line_items })
 }
