@@ -69,6 +69,16 @@ services:
       - RUST_LOG=info,minidodo_psp=debug
     command: ["psp"]
 
+  receiver:
+    image: python:3.12-slim
+    environment:
+      - PORT=9000
+      - WEBHOOK_SIGNING_SECRET=${WEBHOOK_SIGNING_SECRET:-whsec_test_secret_12345}
+    volumes:
+      - ./mock-receiver:/app
+    working_dir: /app
+    command: ["python", "receiver.py"]
+
   worker:
     build:
       context: .
