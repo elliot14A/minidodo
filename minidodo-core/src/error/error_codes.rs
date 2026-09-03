@@ -46,6 +46,11 @@ impl PaymentErrorCode {
     pub const PSP_COMMUNICATION_FAILURE: &'static str = "PAYMENT_PSP_FAILURE";
 }
 
+pub struct WebhookErrorCode;
+impl WebhookErrorCode {
+    pub const DELIVERY_FAILED: &'static str = "WEBHOOK_DELIVERY_FAILED";
+}
+
 pub struct SystemErrorCode;
 impl SystemErrorCode {
     pub const INTERNAL_ERROR: &'static str = "SYSTEM_INTERNAL_ERROR";

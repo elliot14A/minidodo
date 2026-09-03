@@ -16,4 +16,6 @@ validator = { workspace = true }
 tracing = { workspace = true }
 figment = { version = "0.10.19", features = ["env"] }
 sha2 = { workspace = true }
-hex = "0.4.3"
+hmac = { workspace = true }
+hex = { workspace = true }
+subtle = "2.6.1"

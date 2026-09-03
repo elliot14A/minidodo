@@ -1293,11 +1293,13 @@ dependencies = [
  "chrono",
  "figment",
  "hex",
+ "hmac",
  "serde",
  "serde_json",
  "sha2 0.10.9",
  "snafu",
  "sqlx",
+ "subtle",
  "tracing",
  "utoipa",
  "uuid",
@@ -1368,6 +1370,7 @@ dependencies = [
 name = "minidodo-worker"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "minidodo-core",
  "minidodo-infra",
  "serde",
