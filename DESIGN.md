@@ -29,8 +29,8 @@ server-side from line items. A client-supplied total is ignored.
 | `customers` | `id`, `business_id`, `name`, `email`, `created_at` | UUID v4 | `idx(business_id, created_at desc)` |
 | `invoices` | `id`, `business_id`, `customer_id`, `state`, `total_cents BIGINT`, `due_date`, `created_at` | UUID v4 | `idx(business_id, state)`; `idx(customer_id)` |
 | `line_items` | `id`, `invoice_id`, `description`, `quantity INT`, `unit_amount_cents BIGINT` | UUID v4 | `idx(invoice_id)` |
-| `payment_attempts` | `id`, `invoice_id`, `business_id`, `idempotency_key`, `request_fingerprint`, `status`, `psp_ref`, `psp_error_code`, `created_at` | UUID v4 | `unique(business_id, idempotency_key)`; `idx(invoice_id)` |
-| `idempotency_keys` | `business_id`, `idempotency_key`, `request_fingerprint`, `recovery_point`, `locked_at`, `last_run_at`, `response_code`, `response_body`, `created_at` | `(business_id, idempotency_key)` | `idx(recovery_point, locked_at) where recovery_point <> 'finished'` |
+| `payment_attempts` | `id`, `invoice_id`, `business_id`, `idempotency_key`, `payload_hash`, `status`, `psp_ref`, `psp_error_code`, `created_at` | UUID v4 | `unique(business_id, idempotency_key)`; `idx(invoice_id)` |
+| `idempotency_keys` | `business_id`, `idempotency_key`, `payload_hash`, `recovery_point`, `locked_at`, `last_run_at`, `response_code`, `response_body`, `created_at` | `(business_id, idempotency_key)` | `idx(recovery_point, locked_at) where recovery_point <> 'finished'` |
 | `webhook_endpoints` | `id`, `business_id`, `url`, `secret`, `created_at` | UUID v4 | `idx(business_id)` |
 | `webhook_deliveries` | `id`, `endpoint_id`, `event_id`, `event_type`, `payload jsonb`, `status`, `attempts`, `next_attempt_at`, `locked_at` | UUID v4 | `idx(status, next_attempt_at)` |
 
@@ -126,6 +126,15 @@ The PSP call happens between committed transactions, with nothing locked. Each p
 the next `recovery_point` on the `idempotency_keys` row, so the row itself records how far the
 payment got and there is no need for a separate queue entry.
 
+On the worker side, both the notification path and the recovery sweep claim a job with
+`select ... for update skip locked` before charging. `pg_notify` broadcasts to every listening
+worker, so the notification alone does not guarantee a single processor. The skip-locked claim
+does: the first worker to lock the row wins, every other worker skips it and gets zero rows, so
+exactly one worker charges each payment. The lock is held only for the microsecond claim and
+released before the PSP call, so the no-lock-across-I/O rule still holds. A second layer, the
+`status='pending'` guard on the settle update, makes double settlement impossible even if two
+charges somehow raced.
+
 Why not the alternatives:
 
 - **`SELECT ... FOR UPDATE` held across the PSP call.** This would hold a row lock for up to
@@ -136,6 +145,10 @@ Why not the alternatives:
   microsecond row lock and no retry loop.
 - **Advisory locks.** These give mutual exclusion but not the "invoice must be open" check.
   The conditional update encodes both the lock and the state check in one statement.
+
+The `Idempotency-Key` header is required on `POST /invoices/{id}/pay`. A request without it is
+rejected with `400`. A money-moving endpoint should never accept a request it cannot safely
+deduplicate, so we enforce the header rather than treating it as optional.
 
 **Two independent guards against double-charging:**
 
@@ -158,11 +171,17 @@ It never waits on the PSP. At most one charge happens and the final state is con
 `tok_timeout` is a slow success, not a failure. Treating it as failed would reject a payment
 the PSP actually accepted. The API always returns `202 Accepted` after committing the claim
 (`invoice=processing`, `attempt=pending`, `recovery_point='charge_pending'`). The worker owns
-the PSP call, which has no HTTP-handler time limit, so the endpoint never hangs. When the PSP
-returns success at around 30 seconds, the worker commits `processing -> paid` and stages an
-`invoice.paid` delivery in `webhook_deliveries`. The caller learns the eventual result through
-the webhook, through `GET /invoices/{id}`, or by retrying with the same idempotency key, which
-replays the stored terminal response.
+the PSP call, which has no HTTP-handler time limit, so the endpoint never hangs.
+
+The completer runs on two mechanisms. The normal path is event-driven: `/pay` calls
+`pg_notify` after committing, and the worker's `LISTEN` wakes and completes the charge in
+milliseconds of wall time. The recovery sweep in (c) is the correctness backstop for when a
+notification is lost, since `NOTIFY` is fire-and-forget. `NOTIFY` provides latency; the sweep
+provides the guarantee.
+
+When the PSP returns success at around 30 seconds, the worker commits `processing -> paid`.
+The caller learns the eventual result through `GET /invoices/{id}` or by retrying with the same
+idempotency key, which replays the stored terminal response.
 
 ### (c) PSP returns success but the service crashes before persisting it
 The customer is not charged twice. The PSP is called with a deterministically derived
@@ -178,21 +197,26 @@ WHERE recovery_point <> 'finished'
 ```
 
 It reclaims each stale row and resumes from the recorded `recovery_point` by re-calling the
-PSP with the same derived key. The idempotent PSP replays the original result instead of
-charging again. The charge happens exactly once, and recovery only re-learns its outcome. This
-relies on the PSP being idempotent on a key we control, which real PSPs like Stripe and Adyen
-are, and which I made the mock PSP honor for this reason. Double-charge prevention is
-necessarily the PSP's responsibility, because it holds the money, so only it can dedup a
-charge. Our responsibility is sending a crash-survivable key so every retry is dedupable.
+PSP with the same derived key. The invoice self-heals out of `processing` and the outcome is
+finally persisted. No-double-charge on that re-call depends on the PSP being idempotent on a
+key we control, which real PSPs like Stripe and Adyen are. The mock PSP does not implement
+this and we do not simulate it, so we state it as an assumption: double-charge prevention is
+necessarily the PSP's responsibility because it holds the money, and only it can dedup a
+charge. Our responsibility is sending a crash-survivable key so every retry is dedupable, and
+building the recovery sweep that re-drives a stuck payment. The stuck-invoice recovery is
+built and verifiable here; the exactly-once charge rests on the documented PSP behavior.
 
-The 60-second claim timeout only needs to exceed the longest legitimate PSP call (the 30-second
-`tok_timeout`) so a slow-but-alive charge is not reclaimed underneath itself. Even if it were,
-the derived key makes the re-run safe, so the timeout is a tuning knob rather than a
-correctness risk.
+The 60-second reclaim threshold must exceed the worker's PSP request timeout of 45 seconds, so
+a call that is still legitimately in flight is never reclaimed underneath itself. The 45-second
+client timeout in turn exceeds the 30-second `tok_timeout` slow success, so a slow-but-alive
+charge completes normally rather than timing out. If a call exceeds 45 seconds it resolves to an
+indeterminate outcome, the worker leaves the payment in `processing`, and the sweep re-drives it
+after the reclaim threshold. The derived key makes that re-run safe, so the threshold is a
+tuning knob rather than a correctness risk.
 
 ### (d) Idempotency key reused with a different request body
 On the `unique(business_id, idempotency_key)` violation we load the existing row and compare
-`request_fingerprint`. On a mismatch we return `422 Unprocessable Entity` ("idempotency key
+`payload_hash`. On a mismatch we return `422 Unprocessable Entity` ("idempotency key
 reused with a different payload"). No second charge and no state change.
 
 ### (e) An already-paid invoice receives another POST /pay
@@ -280,8 +304,17 @@ would add moving parts without doing anything the sweep does not already do at t
 - **Refunds and partial payments.** Out of scope. This would add a `refunds` table and a
   `paid -> refunded` transition. The integer-cents model already supports it.
 - **A durable message broker (NATS or SQS).** Background work stays on Postgres, which keeps
-  `docker compose up` to a single datastore. A broker would be the move once there are many job
-  types or the polling load grows.
+  `docker compose up` to a single datastore. `pg_notify` wakes the worker and the recovery
+  sweep is the correctness backstop. A broker with redelivery would be the move once there are
+  many job types, the load grows, or the fire-and-forget window of a lost notification during a
+  full worker outage needs to be closed at the transport layer rather than by the sweep.
+- **PSP idempotency in the mock.** The recovery re-call is safe from double-charging only
+  because a production PSP dedups on the derived key. The mock does not implement this, so we
+  assume it (see section 3c). The built recovery sweep still guarantees the invoice never stays
+  stuck in `processing`.
+- **Worker hardening.** No hard mutex for multiple concurrent worker instances (a single worker
+  is assumed), no heartbeat or liveness probe, and no graceful in-flight drain on shutdown. A
+  killed worker's claimed rows are recovered by the sweep after the reclaim timeout.
 - **API key rotation and revocation.** The assignment leaves revocation to our discretion. One
   key is seeded and tied to a business, which satisfies scoped authentication. A `status` and
   `revoked_at` column would add revocation, and multiple active keys per business would add
