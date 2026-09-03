@@ -4,7 +4,7 @@ use minidodo_infra::postgres::actions::payments::{SettleFailureParams, SettleSuc
 use minidodo_infra::postgres::connection::ConnectionPool;
 use minidodo_infra::psp::{charge, PspOutcome};
 use serde_json::json;
-use tracing::info;
+use tracing::{info, warn};
 
 pub async fn complete_attempt(
     pool: &ConnectionPool,
@@ -53,7 +53,7 @@ pub async fn complete_attempt(
                 "psp_ref": psp_ref
             });
 
-            minidodo_infra::postgres::actions::payments::settle_success(
+            let staged_delivery_ids = minidodo_infra::postgres::actions::payments::settle_success(
                 pool,
                 SettleSuccessParams {
                     attempt_id: attempt.id,
@@ -66,6 +66,14 @@ pub async fn complete_attempt(
                 },
             )
             .await?;
+
+            if let Some(delivery_ids) = staged_delivery_ids {
+                for delivery_id in delivery_ids {
+                    if let Err(e) = minidodo_infra::postgres::actions::webhooks::notify_webhook(pool, delivery_id).await {
+                        warn!(error = %e, delivery_id = %delivery_id, "Failed to send pg_notify for webhook delivery");
+                    }
+                }
+            }
         }
         PspOutcome::DefinitiveFailure { error_code } => {
             info!(attempt_id = %attempt.id, error_code = ?error_code, "Settling payment as failed");
@@ -76,7 +84,7 @@ pub async fn complete_attempt(
                 "error_code": error_code
             });
 
-            minidodo_infra::postgres::actions::payments::settle_failure(
+            let staged_delivery_ids = minidodo_infra::postgres::actions::payments::settle_failure(
                 pool,
                 SettleFailureParams {
                     attempt_id: attempt.id,
@@ -89,6 +97,14 @@ pub async fn complete_attempt(
                 },
             )
             .await?;
+
+            if let Some(delivery_ids) = staged_delivery_ids {
+                for delivery_id in delivery_ids {
+                    if let Err(e) = minidodo_infra::postgres::actions::webhooks::notify_webhook(pool, delivery_id).await {
+                        warn!(error = %e, delivery_id = %delivery_id, "Failed to send pg_notify for webhook delivery");
+                    }
+                }
+            }
         }
         PspOutcome::Unknown => {
             tracing::warn!(

@@ -1,6 +1,7 @@
 use axum::routing::get;
 
 pub mod charges;
+pub mod webhooks;
 
 pub fn routes() -> axum::Router {
     axum::Router::new()

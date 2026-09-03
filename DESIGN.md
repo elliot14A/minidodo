@@ -31,8 +31,8 @@ server-side from line items. A client-supplied total is ignored.
 | `line_items` | `id`, `invoice_id`, `description`, `quantity INT`, `unit_amount_cents BIGINT` | UUID v4 | `idx(invoice_id)` |
 | `payment_attempts` | `id`, `invoice_id`, `business_id`, `idempotency_key`, `payload_hash`, `status`, `psp_ref`, `psp_error_code`, `created_at` | UUID v4 | `unique(business_id, idempotency_key)`; `idx(invoice_id)` |
 | `idempotency_keys` | `business_id`, `idempotency_key`, `payload_hash`, `recovery_point`, `locked_at`, `last_run_at`, `response_code`, `response_body`, `created_at` | `(business_id, idempotency_key)` | `idx(recovery_point, locked_at) where recovery_point <> 'finished'` |
-| `webhook_endpoints` | `id`, `business_id`, `url`, `secret`, `created_at` | UUID v4 | `idx(business_id)` |
-| `webhook_deliveries` | `id`, `endpoint_id`, `event_id`, `event_type`, `payload jsonb`, `status`, `attempts`, `next_attempt_at`, `locked_at` | UUID v4 | `idx(status, next_attempt_at)` |
+| `webhooks` | `id`, `business_id`, `url`, `signing_secret`, `active`, `created_at` | UUID v4 | `idx(business_id)` |
+| `webhook_deliveries` | `id`, `endpoint_id`, `business_id`, `event_type`, `payload jsonb`, `status`, `attempts`, `last_error`, `last_attempt_at`, `created_at` | UUID v4 | `idx(business_id, created_at desc)` |
 
 **Design choices and alternatives.**
 
@@ -234,44 +234,48 @@ stuck in a bad state.
 
 ## 4. Webhook Design
 
-**Events:** `invoice.created`, `invoice.paid`, `invoice.payment_failed`.
+**Events:** `invoice.paid` and `invoice.payment_failed`. Both are staged from the payment-settle
+transactions. `invoice.created` is a documented cut (section 6).
 
 **Who fires them: a transactional outbox.** The event is inserted into `webhook_deliveries` in
-the same transaction as the state change it describes, which is either the invoice-create
-transaction or the payment-settle transaction. If the transaction commits, the delivery row
-exists. If it rolls back, it does not. So `invoice.paid` can never fire for an invoice that is
-not paid, and it can never be missed for one that is. The webhook-delivery worker picks up
-pending rows and delivers them, retrying on their own backoff schedule. This decouples delivery
-from both the API response and the payment-charge logic. A flaky receiver retries the delivery,
-it never re-runs the charge.
+the same transaction as the settle it describes (`settle_success` or `settle_failure`). If the
+transaction commits, the delivery row exists. If it rolls back, it does not. So `invoice.paid`
+can never fire for an invoice that is not paid, and it can never be missed for one that is. This
+decouples delivery from both the API response and the payment-charge logic. A flaky receiver
+retries the delivery, it never re-runs the charge.
 
-**Signing.** HMAC-SHA256 over the exact serialized JSON body, using a per-endpoint secret. The
-header is `X-Webhook-Signature: sha256=<hex>`. We also sign a timestamp and include an
-`event_id`. Receivers verify the signature, reject stale timestamps for replay protection, and
-dedupe on `event_id` because delivery is at-least-once.
+**Signing.** HMAC-SHA256 with a per-endpoint secret. The signed material is
+`<unix_timestamp>.<exact serialized JSON body>`, sent as `X-Webhook-Signature: sha256=<hex>` and
+`X-Webhook-Timestamp: <unix>`. Binding the timestamp into the signature is the replay-protection
+input: a receiver recomputes the HMAC over the received timestamp plus body, rejects a stale
+timestamp, and constant-time compares. The body carries an `event_id` (the delivery id).
+Delivery is at-least-once, so receivers dedupe on `event_id`. The mock receiver in
+`minidodo-psp` performs this verification and returns 200 on a match, 401 otherwise.
 
-**Retry policy.** Exponential backoff with attempts at 0s, 30s, 2m, 10m, 1h, and 6h. That is a
-maximum of 6 attempts with a total budget of about 8 hours. A delivery that returns 2xx is
-marked `completed`. Otherwise `next_attempt_at` is advanced by the backoff schedule. When the
-budget is exhausted the delivery is marked `failed`, which is a dead letter.
+**Retry policy.** After the settle commits, the worker fires `pg_notify('webhooks', <id>)`. A
+worker claims the row and delivers it with an inline retry loop: up to 5 attempts with
+exponential backoff sleeps of 2s, 4s, 8s, and 16s between them, a total budget of about 30s. A
+2xx marks the row `delivered`. When all 5 attempts fail the row is marked `failed`. `failed` is
+a terminal record for observability only; nothing re-drives it (no dead letter queue, section 6).
 
 **Reconciliation of missed events.** Businesses can list their invoices
 (`GET /invoices?state=...`) and read the current state at any time. The API is the source of
-truth and webhooks are a convenience notification. A production system would add a delivery-log
-and replay endpoint, noted in section 7.
+truth and webhooks are a convenience notification. A production system would add long-horizon
+retries, a delivery-log, and a replay endpoint, noted in section 7.
 
 **Why delivery is decoupled, and how.** Delivery must not block the API response, since a slow
-receiver would slow every payer, and it must survive receiver downtime with long retries.
-Writing the delivery row inside the state-change transaction and letting the worker pick it up
-provides this. The worker polls `webhook_deliveries` for rows whose `next_attempt_at` is due. A
-`LISTEN/NOTIFY` wakeup can be layered on as a latency optimization, but it is only a hint: the
-due-time poll is the source of truth, so a lost notification never loses a delivery. The API
-commits and returns in milliseconds, and the worker delivers asynchronously.
+receiver would slow every payer. Writing the delivery row inside the settle transaction and
+handing it to the worker over `LISTEN/NOTIFY` provides this: the API (and the settle) commit and
+return in milliseconds while the worker delivers asynchronously. The claim uses
+`for update skip locked` so two workers never grab the same row, mirroring the payment path, and
+the status-conditional `where status = 'pending'` guard on the final write means a duplicate
+delivery attempt can never flip a row twice.
 
-The worker is the smallest structure that satisfies this. The same process also completes
-payments left in flight by a slow PSP or a crash, so one poll loop over two domain tables covers
-both async concerns. That is why there is no generic job queue, no broker, and no heartbeat: they
-would add moving parts without doing anything the sweep does not already do at this scale.
+Unlike payments, webhook delivery is deliberately best-effort. There is no recovery sweep and no
+crash recovery: a lost notification or a worker crash mid-delivery drops that delivery. This is
+an accepted trade (section 6). Payments hold the durable, crash-survivable recovery story because
+they move money; webhooks are a notification whose ground truth is always re-readable from the
+API, so the extra machinery is not worth it at this scale.
 
 ---
 
@@ -315,6 +319,14 @@ would add moving parts without doing anything the sweep does not already do at t
 - **Worker hardening.** No hard mutex for multiple concurrent worker instances (a single worker
   is assumed), no heartbeat or liveness probe, and no graceful in-flight drain on shutdown. A
   killed worker's claimed rows are recovered by the sweep after the reclaim timeout.
+- **Durable webhook delivery.** Webhooks are deliberately best-effort: `pg_notify` drives an
+  inline retry loop, but there is no recovery sweep, no crash recovery, and no dead letter queue
+  for deliveries. A lost notification or a worker crash mid-delivery drops that delivery. Unlike
+  payments there is no money at stake and the current state is always re-readable from the API,
+  so the durable machinery is not worth it here. Endpoint registration CRUD is also cut: one
+  `webhooks` endpoint is seeded. The `invoice.created` event is cut so the outbox hook stays
+  confined to the two settle transactions. A production build would add long-horizon retries, a
+  durable sweep, and a replay endpoint (section 7).
 - **API key rotation and revocation.** The assignment leaves revocation to our discretion. One
   key is seeded and tied to a business, which satisfies scoped authentication. A `status` and
   `revoked_at` column would add revocation, and multiple active keys per business would add
@@ -329,7 +341,7 @@ If this shipped tomorrow, the top gaps are:
 
 1. **Observability.** Structured tracing spans exist, but there are no metrics (payment success
    rate, PSP latency, webhook delivery lag) and no alerting on stuck-`processing` invoices or
-   dead-lettered deliveries. This is the first thing I would add.
+   `failed` webhook deliveries. This is the first thing I would add.
 2. **Rate limiting and abuse controls.** Per-API-key limits (via `tower_governor`) plus a cap
    on payment attempts per invoice to bound PSP spend.
 3. **Full reconciliation and an audit log.** An append-only audit trail of every state

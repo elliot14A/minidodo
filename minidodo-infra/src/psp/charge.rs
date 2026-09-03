@@ -1,15 +1,14 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::LazyLock;
 use std::time::Duration;
 use uuid::Uuid;
 
-static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
+fn get_http_client() -> Client {
     Client::builder()
         .pool_max_idle_per_host(10)
         .build()
-        .expect("failed to initialize PSP HTTP client")
-});
+        .unwrap_or_default()
+}
 
 #[derive(Debug, Clone, Serialize)]
 struct CreateChargePayload<'a> {
@@ -38,6 +37,7 @@ pub async fn charge(
     card_token: &str,
     derived_key: &str,
 ) -> PspOutcome {
+    let client = get_http_client();
     let url = format!("{}/v1/charges", base_url.trim_end_matches('/'));
 
     let payload = CreateChargePayload {
@@ -46,7 +46,7 @@ pub async fn charge(
         idempotency_key: Some(derived_key),
     };
 
-    let response = HTTP_CLIENT
+    let response = client
         .post(&url)
         .header("idempotency-key", derived_key)
         .json(&payload)

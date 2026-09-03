@@ -5,6 +5,7 @@ use tracing::info;
 
 use crate::listener::run_listener;
 use crate::sweep::run_sweep;
+use crate::webhook_listener::run_webhook_listener;
 
 pub async fn serve(config: WorkerConfig) -> Result<()> {
     info!("Connecting to database for worker");
@@ -19,23 +20,30 @@ pub async fn serve(config: WorkerConfig) -> Result<()> {
         "Starting minidodo worker"
     );
 
-    let listener_handle = tokio::spawn(run_listener(
+    let payment_listener_handle = tokio::spawn(run_listener(
         pool.clone(),
         psp_base_url.clone(),
     ));
 
-    let sweep_handle = tokio::spawn(run_sweep(
+    let payment_sweep_handle = tokio::spawn(run_sweep(
         pool.clone(),
         psp_base_url.clone(),
         sweep_interval,
     ));
 
+    let webhook_listener_handle = tokio::spawn(run_webhook_listener(
+        pool.clone(),
+    ));
+
     tokio::select! {
-        res = listener_handle => {
-            tracing::error!("Notification listener exited: {:?}", res);
+        res = payment_listener_handle => {
+            tracing::error!("Payment notification listener exited: {:?}", res);
         }
-        res = sweep_handle => {
-            tracing::error!("Recovery sweep exited: {:?}", res);
+        res = payment_sweep_handle => {
+            tracing::error!("Payment recovery sweep exited: {:?}", res);
+        }
+        res = webhook_listener_handle => {
+            tracing::error!("Webhook notification listener exited: {:?}", res);
         }
     }
 

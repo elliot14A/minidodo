@@ -1,6 +1,7 @@
 use minidodo_core::models::idempotency::RecoveryPoint;
 use minidodo_core::models::payment_attempt::PaymentStatus;
-use serde_json::Value;
+use minidodo_core::models::webhook::WebhookEventType;
+use serde_json::{json, Value};
 use snafu::ResultExt;
 use uuid::Uuid;
 
@@ -17,7 +18,10 @@ pub struct SettleFailureParams<'a> {
     pub response_body: Value,
 }
 
-pub async fn settle_failure(pool: &ConnectionPool, params: SettleFailureParams<'_>) -> Result<bool> {
+pub async fn settle_failure(
+    pool: &ConnectionPool,
+    params: SettleFailureParams<'_>,
+) -> Result<Option<Vec<Uuid>>> {
     let mut tx = pool.begin().await.context(TransactionFailedSnafu)?;
 
     let attempt_result = sqlx::query(
@@ -28,7 +32,7 @@ pub async fn settle_failure(pool: &ConnectionPool, params: SettleFailureParams<'
         "#,
     )
     .bind(PaymentStatus::Failed)
-    .bind(params.psp_error_code)
+    .bind(&params.psp_error_code)
     .bind(params.attempt_id)
     .bind(params.business_id)
     .execute(&mut *tx)
@@ -36,7 +40,7 @@ pub async fn settle_failure(pool: &ConnectionPool, params: SettleFailureParams<'
     .context(QueryFailedSnafu)?;
 
     if attempt_result.rows_affected() == 0 {
-        return Ok(false);
+        return Ok(None);
     }
 
     sqlx::query(
@@ -72,7 +76,22 @@ pub async fn settle_failure(pool: &ConnectionPool, params: SettleFailureParams<'
     .await
     .context(QueryFailedSnafu)?;
 
+    let webhook_payload = json!({
+        "invoice_id": params.invoice_id,
+        "attempt_id": params.attempt_id,
+        "status": "failed",
+        "error_code": params.psp_error_code
+    });
+
+    let delivery_ids = crate::postgres::actions::webhooks::stage_deliveries(
+        &mut tx,
+        params.business_id,
+        WebhookEventType::InvoicePaymentFailed,
+        webhook_payload,
+    )
+    .await?;
+
     tx.commit().await.context(TransactionFailedSnafu)?;
 
-    Ok(true)
+    Ok(Some(delivery_ids))
 }

@@ -8,6 +8,7 @@ fn map_env_key(k: &str) -> String {
         "POSTGRES_POOL_SIZE" => "POSTGRES.POOL_SIZE".into(),
         "WORKER_PSP_BASE_URL" => "WORKER.PSP_BASE_URL".into(),
         "WORKER_SWEEP_INTERVAL_SECS" => "WORKER.SWEEP_INTERVAL_SECS".into(),
+        "PSP_WEBHOOK_SIGNING_SECRET" => "PSP.WEBHOOK_SIGNING_SECRET".into(),
         other => other.replace('_', "."),
     }
 }

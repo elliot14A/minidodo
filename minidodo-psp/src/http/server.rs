@@ -1,4 +1,4 @@
-use axum::Router;
+use axum::{extract::Extension, Router};
 use minidodo_core::{MinidodoError, Result, SystemErrorCode};
 use std::{future::Future, pin::Pin};
 use tower::Layer;
@@ -11,10 +11,15 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::http;
+use crate::http::state::PspState;
 
 pub type ServerFuture = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
 
-pub async fn build_http_server(host: String, port: u16) -> Result<(String, ServerFuture)> {
+pub async fn build_http_server(
+    host: String,
+    port: u16,
+    state: PspState,
+) -> Result<(String, ServerFuture)> {
     let app = Router::new();
 
     let api = http::routes::routes();
@@ -23,12 +28,14 @@ pub async fn build_http_server(host: String, port: u16) -> Result<(String, Serve
     let app = app.fallback_service(api);
 
     let app = initialize_tracing(app);
-    let app = app.layer(
-        CorsLayer::new()
-            .allow_origin(Any)
-            .allow_headers(Any)
-            .allow_methods(Any),
-    );
+    let app = app
+        .layer(Extension(state))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_headers(Any)
+                .allow_methods(Any),
+        );
 
     let addr = format!("{}:{}", host, port);
     info!(address = %addr, "Starting Mock PSP server");
