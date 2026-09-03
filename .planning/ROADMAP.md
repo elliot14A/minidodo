@@ -47,14 +47,13 @@
   - `06-03`: `POST /v1/invoices/{id}/pay` (Phase-1 commit, `pg_notify('payments', ...)`, `202`, idempotency and failure modes a/d/e). Endpoint never calls the PSP.
   - `06-04`: `minidodo-worker` crate (PSP client, completer, NOTIFY listener, recovery sweep), `worker` CLI subcommand, workspace and compose wiring.
 
-### Phase 7: Webhook Endpoints & Deliveries
-- **Goal**: Webhook endpoint registration, transactional outbox staging in `webhook_deliveries`, HMAC-SHA256 signing, retry backoff, and the worker's webhook delivery sweep.
+### Phase 7: Webhooks (Planned)
+- **Goal**: Signed webhook delivery for payment outcomes. Seeded `webhooks` endpoint (no CRUD), transactional outbox staging in `webhook_deliveries` inside the settle transaction, HMAC-SHA256 signing, LISTEN/NOTIFY plus `for update skip locked` claim (same as payments), and an inline retry loop with exponential backoff in the worker. No recovery sweep and no dead letter queue for webhooks (documented cuts). Mock receiver lives in `minidodo-psp` and verifies the signature. See `.planning/phases/07-webhook-deliveries/CONTEXT.md`.
 - **Plans**:
-  - `07-01`: Migration for `webhook_endpoints` and `webhook_deliveries` (`status`, `attempts`, `next_attempt_at`, `locked_at`).
-  - `07-02`: Domain models `WebhookEndpoint`, `WebhookDelivery`, `WebhookEvent`.
-  - `07-03`: Postgres actions for endpoint registration, delivery staging (inside the state-change transaction), claim-due, and update.
-  - `07-04`: Webhook signing helper and pure delivery action.
-  - `07-05`: API routes for webhook endpoint registration, plus the worker's delivery sweep loop.
+  - `07-01`: Migrations `0008_create_webhooks` (seeded endpoint) and `0009_create_webhook_deliveries` (`status`, `attempts`, `last_error`, `last_attempt_at`; no `next_attempt_at`/`locked_at`).
+  - `07-02`: Domain models `WebhookEndpoint`, `WebhookDelivery`, `WebhookEventType` (`invoice.paid`, `invoice.payment_failed`), `WebhookDeliveryStatus`, payload plus HMAC-SHA256 sign and verify helpers.
+  - `07-03`: Postgres actions (one per file): stage inside the settle tx, notify, claim (skip locked), mark delivered, mark failed. Wire staging into `settle_success`/`settle_failure`.
+  - `07-04`: Worker webhook listener and inline retry deliverer, signed outbound delivery, and the verifying `POST /webhooks/sink` mock receiver in `minidodo-psp`. No sweep.
 
 ### Phase 8: Verification & Testing Suite
 - **Goal**: Automated integration tests covering concurrency, idempotency, and failure modes.
