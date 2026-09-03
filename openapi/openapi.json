@@ -1,0 +1,1709 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "minidodo-server",
+        "description": "",
+        "license": {
+            "name": ""
+        },
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/health": {
+            "get": {
+                "tags": [
+                    "health"
+                ],
+                "operationId": "healthCheck",
+                "responses": {
+                    "200": {
+                        "description": "Service is healthy",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "OK"
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/v1/businesses/me": {
+            "get": {
+                "tags": [
+                    "businesses"
+                ],
+                "operationId": "getCurrentBusiness",
+                "responses": {
+                    "200": {
+                        "description": "Current authenticated business",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "created_at"
+                                            ],
+                                            "properties": {
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/customers/": {
+            "get": {
+                "tags": [
+                    "customers"
+                ],
+                "operationId": "listCustomers",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination (minimum 1)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "minimum": 0
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of items per page (minimum 1, maximum 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "minimum": 0
+                        },
+                        "example": 10
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "desc"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customers fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "description": "Struct representing paginated result for any entity",
+                                            "required": [
+                                                "items",
+                                                "total_items",
+                                                "page",
+                                                "limit",
+                                                "total_pages",
+                                                "has_next_page",
+                                                "has_prev_page"
+                                            ],
+                                            "properties": {
+                                                "has_next_page": {
+                                                    "type": "boolean"
+                                                },
+                                                "has_prev_page": {
+                                                    "type": "boolean"
+                                                },
+                                                "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    }
+                                                },
+                                                "limit": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                },
+                                                "page": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                },
+                                                "total_items": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                },
+                                                "total_pages": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "customers"
+                ],
+                "operationId": "createCustomer",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCustomerRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Customer created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "required": [
+                                                "id",
+                                                "business_id",
+                                                "name",
+                                                "email",
+                                                "created_at"
+                                            ],
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid input"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/customers/{id}": {
+            "get": {
+                "tags": [
+                    "customers"
+                ],
+                "operationId": "getCustomerById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Customer UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "required": [
+                                                "id",
+                                                "business_id",
+                                                "name",
+                                                "email",
+                                                "created_at"
+                                            ],
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Customer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/invoices/": {
+            "get": {
+                "tags": [
+                    "invoices"
+                ],
+                "operationId": "listInvoices",
+                "parameters": [
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter by invoice state",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/InvoiceState"
+                        }
+                    },
+                    {
+                        "name": "customer_id",
+                        "in": "query",
+                        "description": "Filter by customer ID",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination (minimum 1)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "minimum": 0
+                        },
+                        "example": 1
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of items per page (minimum 1, maximum 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "minimum": 0
+                        },
+                        "example": 10
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Sort order (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "desc"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoices fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "description": "Struct representing paginated result for any entity",
+                                            "required": [
+                                                "items",
+                                                "total_items",
+                                                "page",
+                                                "limit",
+                                                "total_pages",
+                                                "has_next_page",
+                                                "has_prev_page"
+                                            ],
+                                            "properties": {
+                                                "has_next_page": {
+                                                    "type": "boolean"
+                                                },
+                                                "has_prev_page": {
+                                                    "type": "boolean"
+                                                },
+                                                "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Invoice"
+                                                    }
+                                                },
+                                                "limit": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                },
+                                                "page": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                },
+                                                "total_items": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                },
+                                                "total_pages": {
+                                                    "type": "integer",
+                                                    "format": "int32",
+                                                    "minimum": 0
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "invoices"
+                ],
+                "operationId": "createInvoice",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateInvoiceRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Invoice created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/Invoice"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "line_items"
+                                                    ],
+                                                    "properties": {
+                                                        "line_items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/components/schemas/LineItem"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid input"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/invoices/{id}": {
+            "get": {
+                "tags": [
+                    "invoices"
+                ],
+                "operationId": "getInvoiceById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Invoice UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoice fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/Invoice"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "line_items"
+                                                    ],
+                                                    "properties": {
+                                                        "line_items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/components/schemas/LineItem"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "invoices"
+                ],
+                "operationId": "updateInvoiceState",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Invoice UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateInvoiceStateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Invoice state updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "required": [
+                                                "id",
+                                                "business_id",
+                                                "customer_id",
+                                                "state",
+                                                "total_cents",
+                                                "due_date",
+                                                "created_at"
+                                            ],
+                                            "properties": {
+                                                "business_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "customer_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "due_date": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "state": {
+                                                    "$ref": "#/components/schemas/InvoiceState"
+                                                },
+                                                "total_cents": {
+                                                    "type": "integer",
+                                                    "format": "int64"
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid state"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    },
+                    "409": {
+                        "description": "Conflict - invalid state transition"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/invoices/{id}/pay": {
+            "post": {
+                "tags": [
+                    "invoices"
+                ],
+                "operationId": "payInvoice",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Invoice UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "description": "Idempotency key for safe payment retries",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PayInvoiceRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "description": "Payment claim accepted and processing",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "required": [
+                                                "attempt_id",
+                                                "invoice_id",
+                                                "status"
+                                            ],
+                                            "properties": {
+                                                "attempt_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "error_code": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "invoice_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "psp_ref": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "format": "uuid"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid idempotency key / request body"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    },
+                    "409": {
+                        "description": "Invoice not payable in current state"
+                    },
+                    "422": {
+                        "description": "Idempotency key conflict with different payload"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Business": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "name",
+                    "created_at"
+                ],
+                "properties": {
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "CreateCustomerRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "email"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "CreateInvoiceRequest": {
+                "type": "object",
+                "required": [
+                    "customer_id",
+                    "due_date",
+                    "line_items"
+                ],
+                "properties": {
+                    "customer_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "line_items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CreateLineItemRequest"
+                        }
+                    }
+                }
+            },
+            "CreateLineItemRequest": {
+                "type": "object",
+                "required": [
+                    "description",
+                    "quantity",
+                    "unit_amount_cents"
+                ],
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "unit_amount_cents": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "Customer": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "business_id",
+                    "name",
+                    "email",
+                    "created_at"
+                ],
+                "properties": {
+                    "business_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Invoice": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "business_id",
+                    "customer_id",
+                    "state",
+                    "total_cents",
+                    "due_date",
+                    "created_at"
+                ],
+                "properties": {
+                    "business_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "customer_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/InvoiceState"
+                    },
+                    "total_cents": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "InvoiceState": {
+                "type": "string",
+                "enum": [
+                    "draft",
+                    "open",
+                    "processing",
+                    "paid",
+                    "void",
+                    "uncollectible"
+                ]
+            },
+            "InvoiceWithLineItems": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Invoice"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "line_items"
+                        ],
+                        "properties": {
+                            "line_items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/LineItem"
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            "JsonResponse_Business": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "required": [
+                            "id",
+                            "name",
+                            "created_at"
+                        ],
+                        "properties": {
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "JsonResponse_Customer": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "required": [
+                            "id",
+                            "business_id",
+                            "name",
+                            "email",
+                            "created_at"
+                        ],
+                        "properties": {
+                            "business_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "email": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "JsonResponse_Invoice": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "required": [
+                            "id",
+                            "business_id",
+                            "customer_id",
+                            "state",
+                            "total_cents",
+                            "due_date",
+                            "created_at"
+                        ],
+                        "properties": {
+                            "business_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "customer_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "due_date": {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "state": {
+                                "$ref": "#/components/schemas/InvoiceState"
+                            },
+                            "total_cents": {
+                                "type": "integer",
+                                "format": "int64"
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "JsonResponse_InvoiceWithLineItems": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Invoice"
+                            },
+                            {
+                                "type": "object",
+                                "required": [
+                                    "line_items"
+                                ],
+                                "properties": {
+                                    "line_items": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/LineItem"
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "JsonResponse_PaginationResult_Customer": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "description": "Struct representing paginated result for any entity",
+                        "required": [
+                            "items",
+                            "total_items",
+                            "page",
+                            "limit",
+                            "total_pages",
+                            "has_next_page",
+                            "has_prev_page"
+                        ],
+                        "properties": {
+                            "has_next_page": {
+                                "type": "boolean"
+                            },
+                            "has_prev_page": {
+                                "type": "boolean"
+                            },
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Customer"
+                                }
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            },
+                            "page": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            },
+                            "total_items": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            },
+                            "total_pages": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "JsonResponse_PaginationResult_Invoice": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "description": "Struct representing paginated result for any entity",
+                        "required": [
+                            "items",
+                            "total_items",
+                            "page",
+                            "limit",
+                            "total_pages",
+                            "has_next_page",
+                            "has_prev_page"
+                        ],
+                        "properties": {
+                            "has_next_page": {
+                                "type": "boolean"
+                            },
+                            "has_prev_page": {
+                                "type": "boolean"
+                            },
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Invoice"
+                                }
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            },
+                            "page": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            },
+                            "total_items": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            },
+                            "total_pages": {
+                                "type": "integer",
+                                "format": "int32",
+                                "minimum": 0
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "JsonResponse_PayInvoiceResponse": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "required": [
+                            "attempt_id",
+                            "invoice_id",
+                            "status"
+                        ],
+                        "properties": {
+                            "attempt_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "error_code": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "invoice_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "psp_ref": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "uuid"
+                            },
+                            "status": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "LineItem": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "invoice_id",
+                    "description",
+                    "quantity",
+                    "unit_amount_cents",
+                    "created_at"
+                ],
+                "properties": {
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "invoice_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "unit_amount_cents": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "PaginationResult_Customer": {
+                "type": "object",
+                "description": "Struct representing paginated result for any entity",
+                "required": [
+                    "items",
+                    "total_items",
+                    "page",
+                    "limit",
+                    "total_pages",
+                    "has_next_page",
+                    "has_prev_page"
+                ],
+                "properties": {
+                    "has_next_page": {
+                        "type": "boolean"
+                    },
+                    "has_prev_page": {
+                        "type": "boolean"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "id",
+                                "business_id",
+                                "name",
+                                "email",
+                                "created_at"
+                            ],
+                            "properties": {
+                                "business_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "created_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "email": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    },
+                    "page": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    },
+                    "total_items": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    }
+                }
+            },
+            "PaginationResult_Invoice": {
+                "type": "object",
+                "description": "Struct representing paginated result for any entity",
+                "required": [
+                    "items",
+                    "total_items",
+                    "page",
+                    "limit",
+                    "total_pages",
+                    "has_next_page",
+                    "has_prev_page"
+                ],
+                "properties": {
+                    "has_next_page": {
+                        "type": "boolean"
+                    },
+                    "has_prev_page": {
+                        "type": "boolean"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "id",
+                                "business_id",
+                                "customer_id",
+                                "state",
+                                "total_cents",
+                                "due_date",
+                                "created_at"
+                            ],
+                            "properties": {
+                                "business_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "created_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "customer_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "due_date": {
+                                    "type": "string",
+                                    "format": "date"
+                                },
+                                "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "state": {
+                                    "$ref": "#/components/schemas/InvoiceState"
+                                },
+                                "total_cents": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    },
+                    "page": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    },
+                    "total_items": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0
+                    }
+                }
+            },
+            "PayInvoiceRequest": {
+                "type": "object",
+                "required": [
+                    "card_token"
+                ],
+                "properties": {
+                    "card_token": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PayInvoiceResponse": {
+                "type": "object",
+                "required": [
+                    "attempt_id",
+                    "invoice_id",
+                    "status"
+                ],
+                "properties": {
+                    "attempt_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "error_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "invoice_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "psp_ref": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "UpdateInvoiceStateRequest": {
+                "type": "object",
+                "required": [
+                    "state"
+                ],
+                "properties": {
+                    "state": {
+                        "$ref": "#/components/schemas/UpdateInvoiceStateTarget"
+                    }
+                }
+            },
+            "UpdateInvoiceStateTarget": {
+                "type": "string",
+                "enum": [
+                    "open",
+                    "void",
+                    "uncollectible"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "dodo_key"
+            }
+        }
+    },
+    "security": [
+        {
+            "BearerAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "health",
+            "description": "Health check endpoints"
+        },
+        {
+            "name": "businesses",
+            "description": "Business entity endpoints"
+        },
+        {
+            "name": "customers",
+            "description": "Customer management endpoints"
+        },
+        {
+            "name": "invoices",
+            "description": "Invoice & Line Item management endpoints"
+        }
+    ]
+}

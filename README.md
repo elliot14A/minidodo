@@ -75,7 +75,18 @@ curl -s -X POST "$BASE/v1/invoices/<invoice-id>/pay" \
 
 ## API documentation
 
-OpenAPI is served at `/docs` when the server is running.
+The OpenAPI 3.1 spec is committed at [`openapi/openapi.json`](openapi/openapi.json).
+
+When the server is running it is also served live:
+
+- Swagger UI: `http://localhost:3000/swagger-ui`
+- Raw spec: `http://localhost:3000/api-docs/openapi.json`
+
+Regenerate the committed copy from a running stack with:
+
+```
+curl -s http://localhost:3000/api-docs/openapi.json | python3 -m json.tool > openapi/openapi.json
+```
 
 ## Demo Video
 
