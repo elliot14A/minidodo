@@ -103,6 +103,19 @@ curl -s -X POST "$BASE/v1/invoices/$INVOICE_ID/pay" \
   -d '{"card_token": "tok_card_declined"}'
 ```
 
+Register a webhook endpoint. The server generates the signing secret and returns it once in the
+response; the business configures its receiver to verify with it:
+
+```sh
+curl -s -X POST "$BASE/v1/webhooks" \
+  -H "authorization: Bearer $API_KEY" \
+  -H "content-type: application/json" \
+  -d '{"url": "https://example.com/hooks"}'
+```
+
+Registered endpoints receive signed `invoice.created`, `invoice.paid`, and `invoice.payment_failed`
+events. A seeded endpoint already points at the mock sink for the demo flow above.
+
 ### Mock PSP card tokens
 
 The mock PSP selects an outcome from the `card_token`:

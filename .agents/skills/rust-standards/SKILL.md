@@ -32,7 +32,7 @@ We follow a **Hexagonal / Ports-and-Adapters Architecture using Pure Async Funct
 │       ├── postgres/           # Database adapter
 │       │   ├── connection.rs   # sqlx PgPool setup, begin_transaction, run_migrations (takes &DatabaseConfig)
 │       │   ├── error.rs        # Postgres-specific error enum -> impl From<Error> for %Project%Error
-│       │   ├── migrations/     # SQL migration files (all lowercase SQL)
+│       │   ├── migrations/     # SQL migration files (all lowercase SQL), co-located per-db subsystem (see §4)
 │       │   └── actions/        # Action-based granular query files
 │       │       ├── <resource_1>/
 │       │       │   ├── create.rs
@@ -141,7 +141,9 @@ Every resource under `routes/v1/<resource>/` MUST strictly follow this 3-tier st
 1. **Strictly Lowercase SQL**: All SQL statements, keywords, and clauses must be written in **lowercase** (`select`, `from`, `where`, `update`, `set`, `insert into`, `values`, `for update skip locked`, `begin`, `commit`, `create table`, `alter table`).
 2. **Explicit SQL over ORM DSL**: Use raw explicit SQL queries in action files (`sqlx::query!` / `sqlx::query_as!` or `sqlx::query`).
 3. **Action-Based Organization**: Group queries under `postgres/actions/<entity>/<action>.rs` as pure async functions taking `&ConnectionPool` or `&mut PgTransaction`.
-4. **Integer Financial & Quantity Types**: Use explicit integer types (`i64` / `u64` / `bigint`) for monetary values or countable items. Avoid floating-point arithmetic in critical domain math.
+4. **Call actions by their full module path, do not import the function.** At the call site write the entire path, e.g. `minidodo_infra::postgres::actions::invoices::create(&pool, business_id, &new_invoice).await?`, rather than `use ...::create;` and calling `create(...)`. Generic verbs like `create`, `get`, `list`, `update` repeat across many entities; spelling out the path makes it obvious at a glance which entity and subsystem a call hits and avoids name collisions between same-named actions. It is a deliberate readability choice, not an oversight.
+5. **Migrations live inside the subsystem, not at the workspace root.** SQL migrations are kept in `<project>-infra/src/postgres/migrations/` (co-located with the Postgres adapter), not in a single top-level `migrations/` directory. This is intentional: in projects that talk to several databases (Postgres plus ClickHouse, DuckDB, etc.), each database subsystem owns its own `migrations/` directory next to its adapter code. Keeping migrations beside the code that runs them makes each database independently maintainable and keeps a multi-database repo from collapsing all migrations into one ambiguous folder.
+6. **Integer Financial & Quantity Types**: Use explicit integer types (`i64` / `u64` / `bigint`) for monetary values or countable items. Avoid floating-point arithmetic in critical domain math.
 
 ---
 

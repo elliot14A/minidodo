@@ -158,8 +158,15 @@ invoice goes `processing -> open`, the attempt is marked `failed`, and we stage
 
 ## 4. Webhook Design
 
-**Events.** `invoice.paid` and `invoice.payment_failed`, both staged from the settle transactions.
-`invoice.created` was cut (section 6).
+**Events.** `invoice.created`, `invoice.paid`, and `invoice.payment_failed`. `invoice.created` is
+staged inside the invoice-create transaction; the paid and failed events are staged from the settle
+transactions. All three use the same transactional outbox.
+
+**Registration.** Businesses register endpoint URLs with `POST /v1/webhooks` (plus `GET` to list
+and fetch), scoped to the authenticated business. The server generates the per-endpoint signing
+secret (`whsec_...`) and returns it once in the create response. The secret is stored in plaintext
+because HMAC signing needs the raw key, unlike the API key which is a bearer token we only compare
+and therefore hash. Neither is ever logged.
 
 **Transactional outbox.** The delivery row is inserted into `webhook_deliveries` in the same
 transaction as the settle it describes. If the settle commits, the row exists; if it rolls back,
@@ -224,8 +231,15 @@ re-readable from the API.
 - **Durable webhook delivery.** Best-effort by choice: `pg_notify` plus an inline retry loop, but
   no recovery sweep, no crash recovery, and no dead letter queue. A lost notification or a crash
   mid-delivery drops that delivery. No money is at stake and state is re-readable from the API.
-  Endpoint CRUD is also cut (one endpoint is seeded), and `invoice.created` is cut so the outbox
-  stays confined to the two settle transactions.
+  Endpoint registration is limited to create, list, and get; update, delete, and secret rotation
+  are cut.
+
+- **Worker high availability.** We assume at least one worker is running. `pg_notify` is
+  fire-and-forget, so a notification sent while no worker is listening is lost. The periodic sweep
+  (every 30s, reclaim threshold 60s) recovers those payments, but only once a worker is back up:
+  nothing sweeps while every worker is down. There is also no hard mutex across multiple worker
+  instances (single worker assumed) and no graceful in-flight drain on shutdown; a killed worker's
+  claimed rows are recovered by the sweep after the reclaim threshold.
 
 - **A message broker (NATS, SQS).** Background work stays on Postgres to keep setup to one
   datastore. `pg_notify` gives latency and the sweep gives the guarantee. A broker earns its place
