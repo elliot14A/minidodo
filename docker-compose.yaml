@@ -56,20 +56,6 @@ services:
       migrate:
         condition: service_completed_successfully
     command: ["server"]
-    develop:
-      watch:
-        - action: rebuild
-          path: ./minidodo-core
-        - action: rebuild
-          path: ./minidodo-infra
-        - action: rebuild
-          path: ./minidodo-server
-        - action: rebuild
-          path: ./minidodo-cli
-        - action: rebuild
-          path: ./Cargo.toml
-        - action: rebuild
-          path: ./Cargo.lock
 
   psp:
     build:
@@ -82,18 +68,6 @@ services:
       - MINIDODO_PSP_PORT=3000
       - RUST_LOG=info,minidodo_psp=debug
     command: ["psp"]
-    develop:
-      watch:
-        - action: rebuild
-          path: ./minidodo-core
-        - action: rebuild
-          path: ./minidodo-psp
-        - action: rebuild
-          path: ./minidodo-cli
-        - action: rebuild
-          path: ./Cargo.toml
-        - action: rebuild
-          path: ./Cargo.lock
 
   worker:
     build:
@@ -116,20 +90,6 @@ services:
       psp:
         condition: service_started
     command: ["worker"]
-    develop:
-      watch:
-        - action: rebuild
-          path: ./minidodo-core
-        - action: rebuild
-          path: ./minidodo-infra
-        - action: rebuild
-          path: ./minidodo-worker
-        - action: rebuild
-          path: ./minidodo-cli
-        - action: rebuild
-          path: ./Cargo.toml
-        - action: rebuild
-          path: ./Cargo.lock
 
 volumes:
   postgres_data:
