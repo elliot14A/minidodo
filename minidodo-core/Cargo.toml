@@ -15,3 +15,5 @@ utoipa = { version = "5.3.1", features = ["axum_extras", "chrono", "uuid"] }
 validator = { workspace = true }
 tracing = { workspace = true }
 figment = { version = "0.10.19", features = ["env"] }
+sha2 = { workspace = true }
+hex = "0.4.3"

@@ -15,7 +15,6 @@ pub struct PostgresConfig {
     pub password: String,
     #[serde(default = "default_pool_size")]
     pub pool_size: u32,
-    pub url: Option<String>,
 }
 
 fn default_db_host() -> String {
@@ -46,16 +45,12 @@ impl Default for PostgresConfig {
             user: default_db_user(),
             password: default_db_password(),
             pool_size: default_pool_size(),
-            url: None,
         }
     }
 }
 
 impl PostgresConfig {
     pub fn to_connection_string(&self) -> String {
-        if let Some(ref url) = self.url {
-            return url.clone();
-        }
         format!(
             "postgresql://{}:{}@{}:{}/{}",
             self.user, self.password, self.host, self.port, self.database

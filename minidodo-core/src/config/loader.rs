@@ -3,6 +3,15 @@ use figment::{Figment, providers::Env};
 use serde::Deserialize;
 use std::collections::HashSet;
 
+fn map_env_key(k: &str) -> String {
+    match k {
+        "POSTGRES_POOL_SIZE" => "POSTGRES.POOL_SIZE".into(),
+        "WORKER_PSP_BASE_URL" => "WORKER.PSP_BASE_URL".into(),
+        "WORKER_SWEEP_INTERVAL_SECS" => "WORKER.SWEEP_INTERVAL_SECS".into(),
+        other => other.replace('_', "."),
+    }
+}
+
 fn create_figment_for(allowed_top_level: &[&str]) -> Figment {
     let allowed: HashSet<String> = allowed_top_level
         .iter()
@@ -15,13 +24,7 @@ fn create_figment_for(allowed_top_level: &[&str]) -> Figment {
     Figment::new()
         .merge(
             Env::prefixed("MINIDODO_")
-                .map(|k| {
-                    if k.as_str() == "POSTGRES_POOL_SIZE" {
-                        "POSTGRES.POOL_SIZE".into()
-                    } else {
-                        k.as_str().replace('_', ".").into()
-                    }
-                })
+                .map(|k| map_env_key(k.as_str()).into())
                 .filter(move |k| {
                     let top = k
                         .as_str()
@@ -34,13 +37,7 @@ fn create_figment_for(allowed_top_level: &[&str]) -> Figment {
         )
         .merge(
             Env::raw()
-                .map(|k| {
-                    if k.as_str() == "POSTGRES_POOL_SIZE" {
-                        "POSTGRES.POOL_SIZE".into()
-                    } else {
-                        k.as_str().replace('_', ".").into()
-                    }
-                })
+                .map(|k| map_env_key(k.as_str()).into())
                 .filter(move |k| {
                     let top = k
                         .as_str()

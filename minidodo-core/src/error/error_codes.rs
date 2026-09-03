@@ -42,7 +42,7 @@ pub struct PaymentErrorCode;
 impl PaymentErrorCode {
     pub const INVOICE_NOT_PAYABLE: &'static str = "PAYMENT_INVOICE_NOT_PAYABLE";
     pub const CONCURRENT_PAYMENT_CONFLICT: &'static str = "PAYMENT_CONCURRENT_CONFLICT";
-    pub const IDEMPOTENCY_MISMATCH: &'static str = "PAYMENT_IDEMPOTENCY_MISMATCH";
+    pub const IDEMPOTENCY_KEY_CONFLICT: &'static str = "PAYMENT_IDEMPOTENCY_KEY_CONFLICT";
     pub const PSP_COMMUNICATION_FAILURE: &'static str = "PAYMENT_PSP_FAILURE";
 }
 
