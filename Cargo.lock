@@ -1279,6 +1279,7 @@ dependencies = [
  "minidodo-infra",
  "minidodo-psp",
  "minidodo-server",
+ "minidodo-worker",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1291,8 +1292,10 @@ dependencies = [
  "axum",
  "chrono",
  "figment",
+ "hex",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "snafu",
  "sqlx",
  "tracing",
@@ -1359,6 +1362,21 @@ dependencies = [
  "utoipa-swagger-ui",
  "uuid",
  "validator",
+]
+
+[[package]]
+name = "minidodo-worker"
+version = "0.1.0"
+dependencies = [
+ "minidodo-core",
+ "minidodo-infra",
+ "serde",
+ "serde_json",
+ "snafu",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

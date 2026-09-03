@@ -12,6 +12,7 @@ minidodo-core = { workspace = true }
 minidodo-infra = { workspace = true }
 minidodo-server = { workspace = true }
 minidodo-psp = { workspace = true }
+minidodo-worker = { workspace = true }
 clap = { version = "4.5", features = ["derive"] }
 tokio = { workspace = true }
 tracing = { workspace = true }

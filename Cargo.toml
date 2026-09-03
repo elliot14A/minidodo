@@ -5,6 +5,7 @@ members = [
   "minidodo-infra",
   "minidodo-server",
   "minidodo-psp",
+  "minidodo-worker",
 ]
 resolver = "2"
 
@@ -51,3 +52,4 @@ minidodo-core = { path = "minidodo-core" }
 minidodo-infra = { path = "minidodo-infra" }
 minidodo-server = { path = "minidodo-server" }
 minidodo-psp = { path = "minidodo-psp" }
+minidodo-worker = { path = "minidodo-worker" }

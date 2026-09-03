@@ -14,4 +14,5 @@ pub enum MinidodoCommands {
     Server,
     Migrate,
     Psp,
+    Worker,
 }

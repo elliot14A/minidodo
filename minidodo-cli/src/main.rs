@@ -3,7 +3,7 @@ mod commands;
 
 use clap::Parser;
 use cli::{MinidodoCli, MinidodoCommands};
-use commands::{migrate, psp, server};
+use commands::{migrate, psp, server, worker};
 use minidodo_core::Result;
 use tracing::error;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -23,6 +23,7 @@ async fn main() -> Result<()> {
         MinidodoCommands::Server => server::run().await,
         MinidodoCommands::Migrate => migrate::run().await,
         MinidodoCommands::Psp => psp::run().await,
+        MinidodoCommands::Worker => worker::run().await,
     };
 
     if let Err(e) = &result {
